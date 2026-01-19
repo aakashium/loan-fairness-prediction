@@ -4,4 +4,4 @@ polars
 scikit-learn
 catboost
 mlflow
-
+fairlearn

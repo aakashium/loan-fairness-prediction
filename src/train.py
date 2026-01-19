@@ -8,6 +8,8 @@ import mlflow
 import pickle
 
 # Configuration
+DEV_MODE = True
+
 params = {
     "iterations": 1000,
     "learning_rate": 0.1,
@@ -21,8 +23,13 @@ params = {
 def train():
     print("Loading processed data...")
     # Load Data
-    df = pl.read_paraquet("data/processed/loan_cleaned.parquet")
+    df = pl.scan_paraquet("data/processed/loan_cleaned.parquet")
 
+    if DEV_MODE:
+        print("⚠ RUNNING IN DEV MODE: Sampling 10% of data")
+        df = df.sample(fraction=0.1, seed=42)
+        print(f"✔ New size: {df.height} rows")
+        
     df_pd = df.to_pandas()
 
     # Features
