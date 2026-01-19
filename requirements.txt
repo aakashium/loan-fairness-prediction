@@ -1,3 +1,7 @@
 numpy
 pandas
 polars
+scikit-learn
+catboost
+mlflow
+pickle
