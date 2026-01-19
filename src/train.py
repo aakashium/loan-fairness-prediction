@@ -23,21 +23,27 @@ params = {
 def train():
     print("Loading processed data...")
     # Load Data
-    df = pl.scan_parquet("data/processed/loan_cleaned.parquet")
+    q = pl.scan_parquet("data/processed/loan_cleaned.parquet")
 
     if DEV_MODE:
         print("⚠ RUNNING IN DEV MODE: Sampling 10% of data")
-        df = df.sample(fraction=0.1, seed=42)
+        df = q.gather_every(10).collect()
         print(f"✔ New size: {df.height} rows")
 
     df_pd = df.to_pandas()
 
     # Features
-    X = df_pd.drop(columns=["target"])
+    drop_cols = ["target", "issue_d", "earliest_cr_line"]
+    
+    # Check if they exist before dropping to avoid errors
+    existing_drop_cols = [c for c in drop_cols if c in df_pd.columns]
+    X = df_pd.drop(columns=existing_drop_cols)
     y = df_pd["target"]
 
     cat_features = X.select_dtypes(include=['object', 'category']).columns.tolist()
     print(f"Categorical features identified: {cat_features}")
+
+    X[cat_features] = X[cat_features].fillna("Missing")
 
     # Split Data 
     X_train, X_test, y_train, y_test = train_test_split(

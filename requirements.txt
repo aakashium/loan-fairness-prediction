@@ -1,5 +1,7 @@
 numpy
 pandas
+matplotlib
+seaborn
 polars
 scikit-learn
 catboost
