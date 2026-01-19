@@ -3,9 +3,15 @@ import polars as pl
 from datetime import datetime
 
 def cleaning_data(input_path: str, output_path: str):
-    
-    # Lazy Load
-    q = pl.scan_csv(input_path, ignore_errors = True)
+
+    q = pl.scan_csv(
+        input_path, 
+        ignore_errors=True,
+        schema_overrides={
+            "revol_util": pl.String,
+            "int_rate": pl.String,
+            "emp_length": pl.String 
+        })
 
     # Define Leakage & Useless Columns to Drop
     leakage_cols = [
@@ -71,14 +77,23 @@ def cleaning_data(input_path: str, output_path: str):
 
     # Drop rows where target is undefined 
     q = q.drop_nulls(subset=["target"])
+
+    # Processed data
+    output_dir = os.path.dirname(output_path)
+    os.makedirs(output_dir, exist_ok=True)
     
     # Execute and Save
     print("Processing and saving...")
-    q = q.fetch(200_000)
-    df = q.collect(streaming=True) # This triggers the computation
-    df.sink_parquet(output_path) 
-    print(f"Cleaned data saved to {output_path} with shape: {df.shape}")
+    q.sink_parquet(output_path) 
+    saved_q = pl.scan_parquet(output_path)
+    
+    # Count rows efficiently without loading the whole file
+    row_count = saved_q.select(pl.len()).collect().item()
+    col_count = len(saved_q.columns)
+    
+    print(f"Cleaned data saved to {output_path}")
+    print(f"Final Shape: ({row_count} rows, {col_count} cols)")
 
 if __name__ == "__main__":
     # Example usage
-    clean_lending_club_data("data/raw/loan.csv", "data/processed/loan_cleaned.parquet")
+    cleaning_data("data/Raw/accepted_2007_to_2018Q4.csv", "data/processed/loan_cleaned.parquet")
